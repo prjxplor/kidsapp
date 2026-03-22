@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/seed-osm?lat=37.384&lng=-122.040&radius=10000&secret=kidsapp123",
+      "schedule": "0 3 * * 1"
+    }
+  ]
+}

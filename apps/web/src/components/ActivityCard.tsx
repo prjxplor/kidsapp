@@ -99,12 +99,21 @@ export default function ActivityCard({ activity, highlighted, index = 0 }: Props
             </p>
           )}
 
-          {activity.openNow !== undefined && (
+          {activity.isEvent && activity.eventDate ? (
+            <p className="text-xs flex items-center gap-1.5 font-semibold text-[#0077B6]">
+              <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" /><path strokeLinecap="round" d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+              {new Date(activity.eventDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              {" · "}
+              {new Date(activity.eventDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+            </p>
+          ) : activity.openNow !== undefined ? (
             <p className={`text-xs flex items-center gap-1.5 font-semibold ${activity.openNow ? "text-green-500" : "text-red-400"}`}>
               <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${activity.openNow ? "bg-green-500" : "bg-red-400"}`} />
               {activity.openNow ? "Open now" : "Closed"}
             </p>
-          )}
+          ) : null}
         </div>
 
         {/* Links */}
@@ -133,7 +142,7 @@ export default function ActivityCard({ activity, highlighted, index = 0 }: Props
               <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
-              Website
+              {activity.isEvent ? "Get tickets" : "Website"}
             </a>
           )}
         </div>

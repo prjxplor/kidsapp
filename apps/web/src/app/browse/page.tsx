@@ -48,6 +48,8 @@ function BrowseContent() {
     openNow: undefined,
     venueType: undefined,
     price: undefined,
+    contentType: undefined,
+    familyOnly: undefined,
   });
 
   useEffect(() => {
@@ -85,13 +87,15 @@ function BrowseContent() {
       ...(filters.category && { category: filters.category }),
       ...(filters.openNow && { openNow: "true" }),
       ...(submittedQuery && { q: submittedQuery }),
+      ...(filters.contentType && { contentType: filters.contentType }),
+      ...(filters.familyOnly && { familyOnly: "true" }),
     });
     fetch(`/api/activities?${params}`)
       .then((r) => r.json())
       .then((d) => setActivities(d.activities ?? []))
       .catch(() => setActivities([]))
       .finally(() => setLoading(false));
-  }, [location, filters.radiusMeters, filters.category, filters.openNow, submittedQuery]);
+  }, [location, filters.radiusMeters, filters.category, filters.openNow, filters.contentType, filters.familyOnly, submittedQuery]);
 
   const setCategory = useCallback((cat: ActivityCategory | undefined) => {
     setFilters((f) => ({ ...f, category: cat }));
@@ -107,12 +111,12 @@ function BrowseContent() {
   const displayedActivities = activities.filter((a) => {
     if (filters.venueType === "outdoor" && a.category !== "outdoor" && !a.id.startsWith("osm-")) return false;
     if (filters.venueType === "indoor" && (a.category === "outdoor" || a.id.startsWith("osm-"))) return false;
-    if (filters.price === "free" && !a.id.startsWith("osm-")) return false;
+    if (filters.price === "free" && !a.id.startsWith("osm-") && !a.isFree) return false;
     if (filters.price === "paid" && a.id.startsWith("osm-")) return false;
     return true;
   });
 
-  const activeFilterCount = [filters.category, filters.openNow, filters.venueType, filters.price].filter(Boolean).length;
+  const activeFilterCount = [filters.category, filters.openNow, filters.venueType, filters.price, filters.contentType, filters.familyOnly].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
@@ -172,7 +176,7 @@ function BrowseContent() {
             <div className="flex items-center justify-between rounded-xl px-3 py-2.5 mb-1" style={{ background: "#EBF5FC", border: "1.5px solid #CAF0F8" }}>
               <span className="text-xs font-semibold" style={{ color: "#0077B6" }}>{activeFilterCount} filter{activeFilterCount > 1 ? "s" : ""} active</span>
               <button
-                onClick={() => setFilters((f) => ({ ...f, category: undefined, openNow: undefined, venueType: undefined, price: undefined }))}
+                onClick={() => setFilters((f) => ({ ...f, category: undefined, openNow: undefined, venueType: undefined, price: undefined, familyOnly: undefined }))}
                 className="text-xs font-semibold transition hover:opacity-70"
                 style={{ color: "#0077B6" }}
               >
@@ -267,6 +271,28 @@ function BrowseContent() {
             </div>
           </div>
 
+          {/* Type */}
+          <div className="bg-white rounded-2xl p-4" style={{ border: "1.5px solid #CAF0F8" }}>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Type</p>
+            <div className="space-y-0.5">
+              {([
+                { label: "🏛️ Places", value: "places" },
+                { label: "📅 Events", value: "events" },
+              ] as const).map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setFilters((f) => ({ ...f, contentType: f.contentType === t.value ? undefined : t.value }))}
+                  className="w-full text-left text-sm px-3 py-2 rounded-xl transition font-medium"
+                  style={filters.contentType === t.value ? { background: "#0077B6", color: "white" } : { color: "#374151" }}
+                  onMouseEnter={e => { if (filters.contentType !== t.value) (e.target as HTMLElement).style.background = "#F3F4F6"; }}
+                  onMouseLeave={e => { if (filters.contentType !== t.value) (e.target as HTMLElement).style.background = ""; }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Availability */}
           <div className="bg-white rounded-2xl p-4" style={{ border: "1.5px solid #CAF0F8" }}>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Availability</p>
@@ -279,6 +305,16 @@ function BrowseContent() {
                 <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${filters.openNow ? "translate-x-4" : "translate-x-0"}`} />
               </span>
               <span className="text-sm font-medium text-gray-600">Open now</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer select-none mt-3">
+              <span
+                onClick={() => setFilters((f) => ({ ...f, familyOnly: f.familyOnly ? undefined : true }))}
+                className="w-10 h-6 rounded-full relative transition-colors duration-200 flex-shrink-0"
+                style={{ background: filters.familyOnly ? "#0077B6" : "#E5E7EB" }}
+              >
+                <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${filters.familyOnly ? "translate-x-4" : "translate-x-0"}`} />
+              </span>
+              <span className="text-sm font-medium text-gray-600">Family friendly only</span>
             </label>
           </div>
         </aside>
@@ -336,6 +372,12 @@ function BrowseContent() {
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">
                         {filters.price === "free" ? "🆓 Free" : "💳 Paid"}
                         <button onClick={() => setFilters((f) => ({ ...f, price: undefined }))} className="ml-0.5 opacity-60 hover:opacity-100">×</button>
+                      </span>
+                    )}
+                    {filters.contentType && (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-700">
+                        {filters.contentType === "events" ? "📅 Events" : "🏛️ Places"}
+                        <button onClick={() => setFilters((f) => ({ ...f, contentType: undefined }))} className="ml-0.5 opacity-60 hover:opacity-100">×</button>
                       </span>
                     )}
                   </div>

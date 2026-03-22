@@ -22,6 +22,11 @@ export interface Activity {
   phoneNumber?: string;
   ageMin?: number;
   ageMax?: number;
+  isEvent?: boolean;
+  eventDate?: string;
+  eventEndDate?: string;
+  isFree?: boolean;
+  priceRange?: string;
 }
 
 export interface SearchFilters {
@@ -32,6 +37,8 @@ export interface SearchFilters {
   ageMax?: number;
   venueType?: "indoor" | "outdoor";
   price?: "free" | "paid";
+  contentType?: "places" | "events";
+  familyOnly?: boolean;
 }
 
 export interface UserLocation {

@@ -40,9 +40,23 @@ export async function fetchFromFoursquare(
     ...(query && { query }),
   });
 
-  const res = await fetch(`https://api.foursquare.com/v3/places/search?${params}`, {
-    headers: { Authorization: FSQ_API_KEY, Accept: "application/json" },
-  });
+  let res: Response;
+  try {
+    const fetchPromise = fetch(`https://places-api.foursquare.com/places/search?${params}`, {
+      headers: {
+        Authorization: `Bearer ${FSQ_API_KEY}`,
+        Accept: "application/json",
+        "X-Places-Api-Version": "2025-06-17",
+      },
+    });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Foursquare timeout")), 6000)
+    );
+    res = await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (err) {
+    console.warn("[foursquare] fetch failed or timed out — skipping");
+    return [];
+  }
 
   if (!res.ok) {
     console.error("Foursquare error:", res.status, await res.text());
@@ -50,9 +64,10 @@ export async function fetchFromFoursquare(
   }
 
   const data = await res.json();
-  console.log("[fsq] raw results count:", data.results?.length ?? 0);
+  const places = data.results ?? data.places ?? [];
+  console.log("[fsq] raw results count:", places.length);
 
-  return (data.results ?? []).map((place: any): Activity => {
+  return places.map((place: any): Activity => {
     const photo = place.photos?.[0];
     const photoUrl = photo ? `${photo.prefix}400x400${photo.suffix}` : undefined;
 
@@ -70,6 +85,7 @@ export async function fetchFromFoursquare(
       phoneNumber: place.tel,
     };
   }).filter((a: Activity) => a.lat && a.lng);
+
 }
 
 function fsqCategoryToLocal(categoryId?: number): ActivityCategory {

@@ -55,11 +55,21 @@ export async function fetchFromOSM(
   const unionQuery = queries.map((q) => `${q}(around:${radiusMeters},${lat},${lng});`).join("\n");
   const overpassQuery = `[out:json][timeout:10];\n(\n${unionQuery}\n);\nout center tags 30;`;
 
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: overpassQuery,
-    headers: { "Content-Type": "text/plain" },
-  });
+  let res: Response;
+  try {
+    const fetchPromise = fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: overpassQuery,
+      headers: { "Content-Type": "text/plain" },
+    });
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("OSM timeout")), 5000)
+    );
+    res = await Promise.race([fetchPromise, timeoutPromise]);
+  } catch (err) {
+    console.warn("[osm] fetch failed or timed out — skipping");
+    return [];
+  }
 
   if (!res.ok) return [];
 
